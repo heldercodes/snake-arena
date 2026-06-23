@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from dotenv import load_dotenv
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, create_engine, delete, select
+from sqlalchemy import JSON, BigInteger, Boolean, ForeignKey, Integer, String, create_engine, delete, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
@@ -56,7 +56,7 @@ class ScoreRow(Base):
     username: Mapped[str] = mapped_column(String(255), nullable=False)
     mode: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     score: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
+    created_at: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
 
 
 class LiveGameRow(Base):
@@ -66,7 +66,7 @@ class LiveGameRow(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     username: Mapped[str] = mapped_column(String(255), nullable=False)
     mode: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
-    started_at: Mapped[int] = mapped_column(Integer, nullable=False)
+    started_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
     snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, index=True, nullable=False)
 
