@@ -1,7 +1,8 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SnakeBoard } from "../components/SnakeBoard";
-import { createState, dirVec, step, turn, type DirName } from "../game/engine";
+import { createState, dirVec, step, turn } from "../game/engine";
+import { directionFromKeyboardEvent } from "../game/input";
 import { useAuth } from "../hooks/useAuth";
 import { services } from "../services";
 import type { GameMode, GameSnapshot, LiveGame } from "../services/types";
@@ -11,12 +12,9 @@ export const Route = createFileRoute("/play/$mode")({
   component: PlayPage,
 });
 
-const KEY_MAP: Record<string, DirName> = {
-  ArrowUp: "up", w: "up", W: "up",
-  ArrowDown: "down", s: "down", S: "down",
-  ArrowLeft: "left", a: "left", A: "left",
-  ArrowRight: "right", d: "right", D: "right",
-};
+function sameDirection(a: GameSnapshot["dir"], b: GameSnapshot["dir"]) {
+  return a.x === b.x && a.y === b.y;
+}
 
 function PlayPage() {
   const params = Route.useParams();
@@ -28,7 +26,7 @@ function PlayPage() {
   const [submitted, setSubmitted] = useState(false);
   const stateRef = useRef(snapshot);
   const liveRef = useRef<LiveGame | null>(null);
-  const dirQueue = useRef<DirName[]>([]);
+  const turnedThisStepRef = useRef(false);
 
   stateRef.current = snapshot;
 
@@ -54,10 +52,9 @@ function PlayPage() {
     const interval = window.setInterval(() => {
       setSnapshot((prev) => {
         if (prev.over) return prev;
-        let s = prev;
-        const next = dirQueue.current.shift();
-        if (next) s = turn(s, dirVec(next));
-        const out = step(s);
+        turnedThisStepRef.current = false;
+        const out = step(prev);
+        stateRef.current = out;
         if (liveRef.current) services.live.tick(liveRef.current.id, out);
         return out;
       });
@@ -80,10 +77,16 @@ function PlayPage() {
   // keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const d = KEY_MAP[e.key];
+      const d = directionFromKeyboardEvent(e);
       if (d) {
         e.preventDefault();
-        dirQueue.current.push(d);
+        if (turnedThisStepRef.current) return;
+
+        const next = turn(stateRef.current, dirVec(d));
+        if (sameDirection(next.dir, stateRef.current.dir)) return;
+        turnedThisStepRef.current = true;
+        stateRef.current = next;
+        setSnapshot(next);
       }
     };
     window.addEventListener("keydown", onKey);
