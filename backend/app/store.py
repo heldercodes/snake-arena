@@ -1,10 +1,12 @@
 import os
 from contextlib import contextmanager
+from pathlib import Path
 from time import time
 from typing import Iterator
 from uuid import uuid4
 
 from fastapi import HTTPException
+from dotenv import load_dotenv
 from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, create_engine, delete, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
@@ -13,7 +15,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 from app.auth import create_token, hash_password, verify_password
 from app.models import GameMode, GameSnapshot, LiveGame, Point, Score, User
 
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_URL = "sqlite:///./snake_arena.db"
+
+load_dotenv(BACKEND_DIR / ".env")
 
 
 def now_ms() -> int:

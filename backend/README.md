@@ -9,12 +9,13 @@ uv sync
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-The server stores data with SQLAlchemy. By default it uses a local SQLite file
-at `sqlite:///./snake_arena.db`; set `DATABASE_URL` to point at another
-SQLAlchemy-supported database URL:
+The server stores data with SQLAlchemy. It loads `DATABASE_URL` from
+`backend/.env` by default, and falls back to a local SQLite file at
+`sqlite:///./snake_arena.db` when the variable is not set. Point
+`DATABASE_URL` at any SQLAlchemy-supported database URL:
 
 ```sh
-DATABASE_URL=sqlite:///./snake_arena.db uv run uvicorn app.main:app --reload --port 8000
+DATABASE_URL=sqlite:///./snake_arena.db
 ```
 
 Then open `http://localhost:8000/` or `http://localhost:8000/api/docs` for the
