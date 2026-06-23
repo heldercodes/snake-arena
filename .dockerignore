@@ -1,0 +1,9 @@
+.git
+backend/.env
+backend/.pytest_cache
+backend/.uv-cache
+backend/.venv
+backend/*.db
+backend/test_*.db
+frontend/dist
+frontend/node_modules
