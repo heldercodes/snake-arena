@@ -1,14 +1,20 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.routers import auth, live, scores
 from app.store import store
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Snake Arena API", version="1.0.0", openapi_url="/api/openapi.json")
+    app = FastAPI(
+        title="Snake Arena API",
+        version="1.0.0",
+        openapi_url="/api/openapi.json",
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -30,6 +36,10 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/", include_in_schema=False)
+    async def docs_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/api/docs")
 
     app.include_router(auth.router, prefix="/api")
     app.include_router(scores.router, prefix="/api")

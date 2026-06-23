@@ -6,8 +6,11 @@ Run it locally:
 
 ```sh
 uv sync
-uv run uvicorn main:app --reload
+uv run uvicorn app.main:app --reload --port 8000
 ```
+
+Then open `http://localhost:8000/` or `http://localhost:8000/api/docs` for the
+FastAPI interactive docs.
 
 Run tests:
 
