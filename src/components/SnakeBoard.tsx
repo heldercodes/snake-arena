@@ -21,10 +21,10 @@ export function SnakeBoard({ snapshot, pixelSize = 24 }: Props) {
     const snake = css.getPropertyValue("--snake").trim() || "#7cffb2";
     const food = css.getPropertyValue("--food").trim() || "#ff5cd3";
 
-    ctx.fillStyle = `oklch(${board})`;
+    ctx.fillStyle = board;
     ctx.fillRect(0, 0, dim, dim);
 
-    ctx.strokeStyle = `oklch(${grid})`;
+    ctx.strokeStyle = grid;
     ctx.lineWidth = 1;
     for (let i = 0; i <= snapshot.size; i++) {
       ctx.beginPath();
@@ -37,12 +37,12 @@ export function SnakeBoard({ snapshot, pixelSize = 24 }: Props) {
       ctx.stroke();
     }
 
-    ctx.fillStyle = `oklch(${food})`;
+    ctx.fillStyle = food;
     const fp = snapshot.food;
     const fpad = 4;
     ctx.fillRect(fp.x * pixelSize + fpad, fp.y * pixelSize + fpad, pixelSize - fpad * 2, pixelSize - fpad * 2);
 
-    ctx.fillStyle = `oklch(${snake})`;
+    ctx.fillStyle = snake;
     snapshot.snake.forEach((p, i) => {
       const pad = i === 0 ? 1 : 2;
       ctx.fillRect(p.x * pixelSize + pad, p.y * pixelSize + pad, pixelSize - pad * 2, pixelSize - pad * 2);
@@ -51,7 +51,7 @@ export function SnakeBoard({ snapshot, pixelSize = 24 }: Props) {
     if (snapshot.over) {
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(0, 0, dim, dim);
-      ctx.fillStyle = `oklch(${snake})`;
+      ctx.fillStyle = snake;
       ctx.font = "bold 32px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.fillText("GAME OVER", dim / 2, dim / 2);
