@@ -33,6 +33,46 @@ Leave this terminal running. Postgres is available on:
 postgresql+psycopg://snake:snake@localhost:5432/snake_arena
 ```
 
+## Optional: Persist Data After Removing the Container
+
+The command above stores Postgres data inside the container. If you remove the
+container, that data is removed too. To keep the database data after deleting
+or recreating the container, use a Docker volume.
+
+Create a named volume:
+
+```sh
+docker volume create snake-arena-postgres-data
+```
+
+Start Postgres with that volume mounted at Postgres' data directory:
+
+```sh
+docker run --rm --name snake-arena-postgres \
+  -e POSTGRES_USER=snake \
+  -e POSTGRES_PASSWORD=snake \
+  -e POSTGRES_DB=snake_arena \
+  -p 5432:5432 \
+  -v snake-arena-postgres-data:/var/lib/postgresql/data \
+  postgres:16
+```
+
+When you stop or remove the container, the data remains in the
+`snake-arena-postgres-data` volume. To start Postgres again with the same data,
+run the same command with the same `-v` value.
+
+List Docker volumes:
+
+```sh
+docker volume ls
+```
+
+Only remove the volume if you intentionally want to wipe the database:
+
+```sh
+docker volume rm snake-arena-postgres-data
+```
+
 ## Configure the Backend
 
 Create or update `backend/.env`:
