@@ -1,4 +1,4 @@
-.PHONY: install backend frontend backend-tests frontend-tests test
+.PHONY: install backend frontend dev backend-tests frontend-tests test
 
 install:
 	cd backend && uv sync
@@ -9,6 +9,9 @@ backend:
 
 frontend:
 	cd frontend && npm run dev
+
+dev:
+	$(MAKE) -j2 backend frontend
 
 backend-tests:
 	cd backend && uv run pytest
