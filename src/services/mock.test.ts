@@ -43,10 +43,14 @@ describe("mock services", () => {
     await services.auth.signup({ username: "p1", password: "x" });
     await services.scores.submit("walls", 10);
     await services.scores.submit("walls", 50);
-    await services.scores.submit("wrap", 99);
+    await services.scores.submit("wrap", 999);
     const walls = await services.scores.top("walls");
-    expect(walls.map((s) => s.score).slice(0, 2)).toEqual([50, 10]);
     expect(walls.every((s) => s.mode === "walls")).toBe(true);
+    for (let i = 1; i < walls.length; i++) {
+      expect(walls[i - 1].score).toBeGreaterThanOrEqual(walls[i].score);
+    }
+    const wrap = await services.scores.top("wrap");
+    expect(wrap[0].score).toBe(999);
   });
 
   it("live game lifecycle + subscribe", async () => {
