@@ -1,12 +1,10 @@
-import { createMockServices } from "./mock";
+import { createRealServices } from "./real";
 import type { Services } from "./types";
 
-// Singleton service instance. Swap createMockServices() for a real
-// implementation later — every component imports from here only.
 let _services: Services | null = null;
 
 export function getServices(): Services {
-  if (!_services) _services = createMockServices();
+  if (!_services) _services = createRealServices();
   return _services;
 }
 
