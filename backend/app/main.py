@@ -48,5 +48,5 @@ def create_app() -> FastAPI:
     return app
 
 
-store.seed()
+store.initialize()
 app = create_app()

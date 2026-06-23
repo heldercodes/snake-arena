@@ -50,7 +50,7 @@ async def subscribe_live_game(gameId: str) -> StreamingResponse:
     store.get_game(gameId)
 
     def payload() -> dict | None:
-        game = store.games.get(gameId)
+        game = store.maybe_get_game(gameId)
         return game.model_dump(mode="json") if game else None
 
     return StreamingResponse(pulse(payload), media_type="text/event-stream")
