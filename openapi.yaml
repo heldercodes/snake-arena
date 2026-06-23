@@ -1,0 +1,589 @@
+openapi: 3.1.0
+info:
+  title: Snake Arena API
+  version: 1.0.0
+  description: >
+    Backend contract expected by the frontend service interface in
+    frontend/src/services/types.ts.
+servers:
+  - url: /api
+security: []
+tags:
+  - name: Auth
+  - name: Scores
+  - name: Live Games
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: Create an account and sign in
+      operationId: signup
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "201":
+          description: Account created. The response sets the session cookie.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookie"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Username already taken.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Sign in with username and password
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "200":
+          description: Signed in. The response sets the session cookie.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookie"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Sign out the current user
+      operationId: logout
+      security:
+        - sessionCookie: []
+      responses:
+        "204":
+          description: Signed out. The response clears the session cookie.
+          headers:
+            Set-Cookie:
+              description: Expired session cookie.
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Return the signed-in user
+      operationId: currentUser
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Current authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /scores:
+    get:
+      tags:
+        - Scores
+      summary: Get leaderboard scores
+      operationId: topScores
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/GameMode"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of scores to return. Defaults to 10 in the frontend service.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Scores sorted descending by score, then ascending by creation time.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Score"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags:
+        - Scores
+      summary: Submit a final score for the signed-in user
+      operationId: submitScore
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitScoreRequest"
+      responses:
+        "201":
+          description: Created score.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Score"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /live/games:
+    get:
+      tags:
+        - Live Games
+      summary: List active live games
+      operationId: listLiveGames
+      security: []
+      responses:
+        "200":
+          description: Active live games.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveGame"
+    post:
+      tags:
+        - Live Games
+      summary: Start a live game for the signed-in user
+      operationId: startLiveGame
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartLiveGameRequest"
+      responses:
+        "201":
+          description: Created live game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveGame"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /live/games/stream:
+    get:
+      tags:
+        - Live Games
+      summary: Subscribe to active live game list updates
+      description: >
+        Server-Sent Events stream for the frontend's live.subscribeList callback.
+        Each data payload is a JSON array of active LiveGame objects.
+      operationId: subscribeLiveGameList
+      security: []
+      responses:
+        "200":
+          description: SSE stream of active live game arrays.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Lines in SSE format. data contains JSON-encoded LiveGame[].
+
+  /live/games/{gameId}:
+    get:
+      tags:
+        - Live Games
+      summary: Get one live game
+      operationId: getLiveGame
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: Live game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveGame"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /live/games/{gameId}/stream:
+    get:
+      tags:
+        - Live Games
+      summary: Subscribe to one live game's updates
+      description: >
+        Server-Sent Events stream for the frontend's live.subscribe(gameId, cb)
+        callback. Each data payload is a JSON LiveGame object. If the game is
+        deleted or not found, the stream may emit null and close.
+      operationId: subscribeLiveGame
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: SSE stream of LiveGame updates.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Lines in SSE format. data contains JSON-encoded LiveGame or null.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /live/games/{gameId}/snapshot:
+    put:
+      tags:
+        - Live Games
+      summary: Update a live game's current snapshot
+      operationId: tickLiveGame
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLiveGameSnapshotRequest"
+      responses:
+        "204":
+          description: Snapshot accepted.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /live/games/{gameId}/end:
+    post:
+      tags:
+        - Live Games
+      summary: End a live game
+      operationId: endLiveGame
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EndLiveGameRequest"
+      responses:
+        "204":
+          description: Game ended.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: snake_session
+      description: Session cookie set by /auth/signup and /auth/login.
+
+  headers:
+    SessionCookie:
+      description: HTTP-only session cookie used for authenticated endpoints.
+      schema:
+        type: string
+
+  parameters:
+    GameId:
+      name: gameId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+      example: g_ab12cd34
+    GameMode:
+      name: mode
+      in: query
+      required: true
+      schema:
+        $ref: "#/components/schemas/GameMode"
+
+  responses:
+    BadRequest:
+      description: Invalid request data.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication is required or credentials are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: The signed-in user cannot modify this resource.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    AuthCredentials:
+      type: object
+      required:
+        - username
+        - password
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          minLength: 1
+          example: neon
+        password:
+          type: string
+          minLength: 1
+          format: password
+          example: demo
+
+    User:
+      type: object
+      required:
+        - id
+        - username
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: u_ab12cd34
+        username:
+          type: string
+          example: neon
+
+    GameMode:
+      type: string
+      enum:
+        - walls
+        - wrap
+
+    Point:
+      type: object
+      required:
+        - x
+        - y
+      additionalProperties: false
+      properties:
+        x:
+          type: integer
+          example: 10
+        y:
+          type: integer
+          example: 10
+
+    GameSnapshot:
+      type: object
+      required:
+        - size
+        - snake
+        - food
+        - dir
+        - score
+        - mode
+        - over
+      additionalProperties: false
+      properties:
+        size:
+          type: integer
+          minimum: 1
+          example: 20
+        snake:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Point"
+        food:
+          $ref: "#/components/schemas/Point"
+        dir:
+          $ref: "#/components/schemas/Point"
+        score:
+          type: integer
+          minimum: 0
+          example: 0
+        mode:
+          $ref: "#/components/schemas/GameMode"
+        over:
+          type: boolean
+          example: false
+
+    LiveGame:
+      type: object
+      required:
+        - id
+        - userId
+        - username
+        - mode
+        - startedAt
+        - snapshot
+        - active
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: g_ab12cd34
+        userId:
+          type: string
+          example: u_ab12cd34
+        username:
+          type: string
+          example: neon
+        mode:
+          $ref: "#/components/schemas/GameMode"
+        startedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds.
+          example: 1782192000000
+        snapshot:
+          $ref: "#/components/schemas/GameSnapshot"
+        active:
+          type: boolean
+          example: true
+
+    Score:
+      type: object
+      required:
+        - id
+        - userId
+        - username
+        - mode
+        - score
+        - createdAt
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: s_ab12cd34
+        userId:
+          type: string
+          example: u_ab12cd34
+        username:
+          type: string
+          example: neon
+        mode:
+          $ref: "#/components/schemas/GameMode"
+        score:
+          type: integer
+          minimum: 0
+          example: 42
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds.
+          example: 1782192000000
+
+    SubmitScoreRequest:
+      type: object
+      required:
+        - mode
+        - score
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: "#/components/schemas/GameMode"
+        score:
+          type: integer
+          minimum: 0
+          example: 42
+
+    StartLiveGameRequest:
+      type: object
+      required:
+        - mode
+        - snapshot
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: "#/components/schemas/GameMode"
+        snapshot:
+          $ref: "#/components/schemas/GameSnapshot"
+
+    UpdateLiveGameSnapshotRequest:
+      type: object
+      required:
+        - snapshot
+      additionalProperties: false
+      properties:
+        snapshot:
+          $ref: "#/components/schemas/GameSnapshot"
+
+    EndLiveGameRequest:
+      type: object
+      required:
+        - finalScore
+      additionalProperties: false
+      properties:
+        finalScore:
+          type: integer
+          minimum: 0
+          example: 42
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      additionalProperties: false
+      properties:
+        message:
+          type: string
+          example: Not signed in
